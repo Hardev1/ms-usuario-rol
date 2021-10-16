@@ -26,7 +26,7 @@ export class RolController {
     public rolRepository : RolRepository,
   ) {}
 
-  @post('/rol')
+  @post('/rols')
   @response(200, {
     description: 'Rol model instance',
     content: {'application/json': {schema: getModelSchemaRef(Rol)}},
@@ -47,7 +47,7 @@ export class RolController {
     return this.rolRepository.create(rol);
   }
 
-  @get('/rol/count')
+  @get('/rols/count')
   @response(200, {
     description: 'Rol model count',
     content: {'application/json': {schema: CountSchema}},
@@ -58,7 +58,7 @@ export class RolController {
     return this.rolRepository.count(where);
   }
 
-  @get('/rol')
+  @get('/rols')
   @response(200, {
     description: 'Array of Rol model instances',
     content: {
@@ -76,7 +76,7 @@ export class RolController {
     return this.rolRepository.find(filter);
   }
 
-  @patch('/rol')
+  @patch('/rols')
   @response(200, {
     description: 'Rol PATCH success count',
     content: {'application/json': {schema: CountSchema}},
@@ -95,7 +95,7 @@ export class RolController {
     return this.rolRepository.updateAll(rol, where);
   }
 
-  @get('/rol/{id}')
+  @get('/rols/{id}')
   @response(200, {
     description: 'Rol model instance',
     content: {
@@ -111,7 +111,7 @@ export class RolController {
     return this.rolRepository.findById(id, filter);
   }
 
-  @patch('/rol/{id}')
+  @patch('/rols/{id}')
   @response(204, {
     description: 'Rol PATCH success',
   })
@@ -129,7 +129,7 @@ export class RolController {
     await this.rolRepository.updateById(id, rol);
   }
 
-  @put('/rol/{id}')
+  @put('/rols/{id}')
   @response(204, {
     description: 'Rol PUT success',
   })
@@ -140,7 +140,7 @@ export class RolController {
     await this.rolRepository.replaceById(id, rol);
   }
 
-  @del('/rol/{id}')
+  @del('/rols/{id}')
   @response(204, {
     description: 'Rol DELETE success',
   })

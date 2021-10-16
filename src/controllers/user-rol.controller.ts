@@ -16,21 +16,21 @@ import {
   requestBody,
 } from '@loopback/rest';
 import {
-Usuario,
-UsuarioRol,
+User,
+UserRol,
 Rol,
 } from '../models';
-import {UsuarioRepository} from '../repositories';
+import {UserRepository} from '../repositories/user.repository';
 
-export class UsuarioRolController {
+export class UserRolController {
   constructor(
-    @repository(UsuarioRepository) protected usuarioRepository: UsuarioRepository,
+    @repository(UserRepository) protected userRepository: UserRepository,
   ) { }
 
-  @get('/usuarios/{id}/rols', {
+  @get('/users/{id}/rols', {
     responses: {
       '200': {
-        description: 'Array of Usuario has many Rol through UsuarioRol',
+        description: 'Array of User has many Rol through UserRol',
         content: {
           'application/json': {
             schema: {type: 'array', items: getModelSchemaRef(Rol)},
@@ -43,10 +43,10 @@ export class UsuarioRolController {
     @param.path.string('id') id: string,
     @param.query.object('filter') filter?: Filter<Rol>,
   ): Promise<Rol[]> {
-    return this.usuarioRepository.tiene_muchos(id).find(filter);
+    return this.userRepository.rols(id).find(filter);
   }
 
-  @post('/usuarios/{id}/rols', {
+  @post('/users/{id}/rols', {
     responses: {
       '200': {
         description: 'create a Rol model instance',
@@ -55,25 +55,25 @@ export class UsuarioRolController {
     },
   })
   async create(
-    @param.path.string('id') id: typeof Usuario.prototype._id,
+    @param.path.string('id') id: typeof User.prototype._id,
     @requestBody({
       content: {
         'application/json': {
           schema: getModelSchemaRef(Rol, {
-            title: 'NewRolInUsuario',
+            title: 'NewRolInUser',
             exclude: ['_id'],
           }),
         },
       },
     }) rol: Omit<Rol, '_id'>,
   ): Promise<Rol> {
-    return this.usuarioRepository.tiene_muchos(id).create(rol);
+    return this.userRepository.rols(id).create(rol);
   }
 
-  @patch('/usuarios/{id}/rols', {
+  @patch('/users/{id}/rols', {
     responses: {
       '200': {
-        description: 'Usuario.Rol PATCH success count',
+        description: 'User.Rol PATCH success count',
         content: {'application/json': {schema: CountSchema}},
       },
     },
@@ -90,13 +90,13 @@ export class UsuarioRolController {
     rol: Partial<Rol>,
     @param.query.object('where', getWhereSchemaFor(Rol)) where?: Where<Rol>,
   ): Promise<Count> {
-    return this.usuarioRepository.tiene_muchos(id).patch(rol, where);
+    return this.userRepository.rols(id).patch(rol, where);
   }
 
-  @del('/usuarios/{id}/rols', {
+  @del('/users/{id}/rols', {
     responses: {
       '200': {
-        description: 'Usuario.Rol DELETE success count',
+        description: 'User.Rol DELETE success count',
         content: {'application/json': {schema: CountSchema}},
       },
     },
@@ -105,6 +105,6 @@ export class UsuarioRolController {
     @param.path.string('id') id: string,
     @param.query.object('where', getWhereSchemaFor(Rol)) where?: Where<Rol>,
   ): Promise<Count> {
-    return this.usuarioRepository.tiene_muchos(id).delete(where);
+    return this.userRepository.rols(id).delete(where);
   }
 }

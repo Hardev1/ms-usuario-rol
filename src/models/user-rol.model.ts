@@ -1,7 +1,7 @@
 import {Entity, model, property} from '@loopback/repository';
 
 @model()
-export class Rol extends Entity {
+export class UserRol extends Entity {
   @property({
     type: 'string',
     id: true,
@@ -11,18 +11,21 @@ export class Rol extends Entity {
 
   @property({
     type: 'string',
-    required: true,
   })
-  nombre: string;
+  id_user?: string;
 
+  @property({
+    type: 'string',
+  })
+  id_rol?: string;
 
-  constructor(data?: Partial<Rol>) {
+  constructor(data?: Partial<UserRol>) {
     super(data);
   }
 }
 
-export interface RolRelations {
+export interface UserRolRelations {
   // describe navigational properties here
 }
 
-export type RolWithRelations = Rol & RolRelations;
+export type UserRolWithRelations = UserRol & UserRolRelations;

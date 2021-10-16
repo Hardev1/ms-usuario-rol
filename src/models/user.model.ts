@@ -1,9 +1,9 @@
 import {Entity, hasMany, model, property} from '@loopback/repository';
 import {Rol} from './rol.model';
-import {UsuarioRol} from './usuario-rol.model';
+import {UserRol} from './user-rol.model';
 
-@model({settings: {strict: false}})
-export class Usuario extends Entity {
+@model()
+export class User extends Entity {
   @property({
     type: 'string',
     id: true,
@@ -15,17 +15,18 @@ export class Usuario extends Entity {
     type: 'string',
     required: true,
   })
-  nombres: string;
+  nombre: string;
 
   @property({
     type: 'string',
     required: true,
   })
-  apellidos: string;
+  apellido: string;
 
   @property({
     type: 'string',
     required: true,
+    unique: true,
   })
   documento: string;
 
@@ -38,13 +39,16 @@ export class Usuario extends Entity {
   @property({
     type: 'string',
     required: true,
+    unique: true,
   })
   email: string;
 
   @property({
     type: 'string',
+    required: true,
+    unique: true,
   })
-  celular?: string;
+  celular: string;
 
   @property({
     type: 'number',
@@ -52,21 +56,24 @@ export class Usuario extends Entity {
   })
   estado?: number;
 
-  @hasMany(() => Rol, {through: {model: () => UsuarioRol, keyFrom: 'id_usuario', keyTo: 'id_rol'}})
-  tiene_muchos: Rol[];
-  // Define well-known properties here
+  @property({
+    type: 'string',
+    required: false,
+  })
+  clave?: string;
 
-  // Indexer property to allow additional data
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [prop: string]: any;
+  @hasMany(() => Rol, {
+    through: {model: () => UserRol, keyFrom: 'id_user', keyTo: 'id_rol'},
+  })
+  rols: Rol[];
 
-  constructor(data?: Partial<Usuario>) {
+  constructor(data?: Partial<User>) {
     super(data);
   }
 }
 
-export interface UsuarioRelations {
+export interface UserRelations {
   // describe navigational properties here
 }
 
-export type UsuarioWithRelations = Usuario & UsuarioRelations;
+export type UserWithRelations = User & UserRelations;
