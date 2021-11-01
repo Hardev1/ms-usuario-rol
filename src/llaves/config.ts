@@ -1,4 +1,4 @@
-export namespace Configuracion {
+export namespace Keys {
   export const mensajeCambioClave =
     'se ha modificado tu contraseña en el sistema ';
   export const mensajeRecuperarClave = 'su nueva contraseña solicitada es: ';
@@ -14,4 +14,8 @@ export namespace Configuracion {
   export const asuntoArg = 'asunto';
   export const mensajeArg = 'mensaje';
   export const hashArg = 'hash';
+  export const url_crear_token = "http://localhost:5001/crear-token"
+  export const arg_nombre = "nombre";
+  export const arg_id_persona = "id";
+  export const arg_rol = "id_rol";
 }

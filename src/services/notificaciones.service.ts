@@ -1,5 +1,5 @@
 import { /* inject, */ BindingScope, injectable} from '@loopback/core';
-import {Configuracion} from '../llaves/config';
+import {Keys} from '../llaves/config';
 import {Notificacion, NotificacionSms} from '../models';
 const fetch = require('node-fetch');
 
@@ -12,7 +12,7 @@ export class NotificacionesService {
    */
 
   EnviarCorreo(datos: Notificacion) {
-    let url = `${Configuracion.urlCorreo}?${Configuracion.hashArg}=${Configuracion.hashNotificacion}&${Configuracion.destinoArg}=${datos.destinatario}&${Configuracion.asuntoArg}=${datos.asunto}&${Configuracion.mensajeArg}=${datos.mensaje}`;
+    let url = `${Keys.urlCorreo}?${Keys.hashArg}=${Keys.hashNotificacion}&${Keys.destinoArg}=${datos.destinatario}&${Keys.asuntoArg}=${datos.asunto}&${Keys.mensajeArg}=${datos.mensaje}`;
     fetch(url)
       .then((res: any) => {
         console.log(res.text());
@@ -22,7 +22,7 @@ export class NotificacionesService {
 
 
   EnviarSms(datos: NotificacionSms) {
-    let url = `${Configuracion.urlSms}?${Configuracion.hashArg}=${Configuracion.hashNotificacion}&${Configuracion.destinoArg}=${datos.destinatario}&${Configuracion.mensajeArg}=${datos.mensaje}`
+    let url = `${Keys.urlSms}?${Keys.hashArg}=${Keys.hashNotificacion}&${Keys.destinoArg}=${datos.destinatario}&${Keys.mensajeArg}=${datos.mensaje}`
     fetch(url)
       .then((res: any) => {
         console.log(res.text());

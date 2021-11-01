@@ -18,7 +18,7 @@ import {
   requestBody,
   response,
 } from '@loopback/rest';
-import {Configuracion} from '../llaves/config';
+import {Keys} from '../llaves/config';
 import {
   CambioClave,
   CredencialesRecuperarClave,
@@ -28,7 +28,7 @@ import {
   User,
 } from '../models';
 import {UserRepository} from '../repositories/user.repository';
-import {KeyManagerService, NotificacionesService} from '../services';
+import {KeyManagerService, NotificacionesService, UserSessionService} from '../services';
 
 export class UserController {
   constructor(
@@ -38,9 +38,11 @@ export class UserController {
     public servicioClaves: KeyManagerService,
     @service(NotificacionesService)
     public servicioNotificaciones: NotificacionesService,
+    @service(UserSessionService)
+    private userSessionService: UserSessionService
   ) {}
 
-  @post('/users')
+  @post('/crear-usuario')
   @response(200, {
     description: 'User model instance',
     content: {'application/json': {schema: getModelSchemaRef(User)}},
@@ -72,14 +74,15 @@ export class UserController {
       let usuarioCreado = await this.userRepository.create(user);
       if (usuarioCreado) {
         let datos = new Notificacion();
-        datos.destinatario = user.email;
-        datos.asunto = Configuracion.asuntoUsuarioCreado;
-        datos.mensaje = `${Configuracion.saludo} ${user.nombre} <br>${Configuracion.mensajeUsuarioCreado} <br> ${clave}`;
+        datos.destinatario = user.email;//el destinatario es el rol al que se le tiene que avisar
+        datos.asunto = Keys.asuntoUsuarioCreado;
+        datos.mensaje = `${Keys.saludo} ${user.nombre} <br>${Keys.mensajeUsuarioCreado} <br> ${clave}`;
         this.servicioNotificaciones.EnviarCorreo(datos);
+        return usuarioCreado;
       }
-      return usuarioCreado;
     }
-    return null;
+    return usuarioRepetido;
+    
   }
 
   @get('/users/count')
@@ -197,22 +200,18 @@ export class UserController {
         },
       },
     })
-    credenciales: Credentials,
+    credentials: Credentials,
   ): Promise<object | null> {
-    let usuario = await this.userRepository.findOne({
-      where: {
-        email: credenciales.usuario,
-        clave: credenciales.clave,
-      },
-    });
+    let usuario = await this.userSessionService.identificarUsuario(credentials);
+    let tk = "";
     if (usuario) {
-      /* let tk = this.servicioJWT.CrearTokenJWT(usuario);
-      usuario.clave = '';
-      return {
-        user: usuario,
-        token: tk */
+      usuario.clave = "";
+      tk = await this.userSessionService.GenerarToken(usuario);
     }
-    return usuario;
+    return {
+      token: tk,
+      usuario: usuario
+    };
   }
 
   @post('/cambiar-clave', {
@@ -231,8 +230,8 @@ export class UserController {
         console.log(datos.nueva_clave);
         await this.userRepository.updateById(datos.id_user, usuario);
         let notificacionSms = new NotificacionSms();
-        notificacionSms.destinatario = usuario.celular;
-        notificacionSms.mensaje = `${Configuracion.saludo} ${usuario.nombre} ${Configuracion.mensajeCambioClave}`;
+        notificacionSms.destinatario = usuario.telefono;
+        notificacionSms.mensaje = `${Keys.saludo} ${usuario.nombre} ${Keys.mensajeCambioClave}`;
         this.servicioNotificaciones.EnviarSms(notificacionSms);
         return true;
       } else {
@@ -265,8 +264,8 @@ export class UserController {
       usuario.clave = claveCifrada;
       await this.userRepository.updateById(usuario._id, usuario);
       let notificacionSms = new NotificacionSms();
-      notificacionSms.destinatario = usuario.celular;
-      notificacionSms.mensaje = `${Configuracion.saludo} ${usuario.nombre}, ${Configuracion.mensajeRecuperarClave} ${clave}`;
+      notificacionSms.destinatario = usuario.telefono;
+      notificacionSms.mensaje = `${Keys.saludo} ${usuario.nombre}, ${Keys.mensajeRecuperarClave} ${clave}`;
       this.servicioNotificaciones.EnviarSms(notificacionSms);
       return true;
     }
