@@ -14,6 +14,11 @@ export class Credentials extends Model {
   })
   clave: string;
 
+  @property({
+    type: 'string',
+    required: true,
+  })
+  rol: string;
 
   constructor(data?: Partial<Credentials>) {
     super(data);

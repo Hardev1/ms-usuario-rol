@@ -27,8 +27,12 @@ import {
   NotificacionSms,
   User,
 } from '../models';
-import {UserRepository} from '../repositories/user.repository';
-import {KeyManagerService, NotificacionesService, UserSessionService} from '../services';
+import {UserRepository, UserRolRepository} from '../repositories/';
+import {
+  KeyManagerService,
+  NotificacionesService,
+  SesionUsuariosService,
+} from '../services';
 
 export class UserController {
   constructor(
@@ -38,8 +42,10 @@ export class UserController {
     public servicioClaves: KeyManagerService,
     @service(NotificacionesService)
     public servicioNotificaciones: NotificacionesService,
-    @service(UserSessionService)
-    private userSessionService: UserSessionService
+    @service(SesionUsuariosService)
+    private sesionUsuariosService: SesionUsuariosService,
+    @service(UserRolRepository)
+    private userRolRepository: UserRolRepository,
   ) {}
 
   @post('/crear-usuario')
@@ -74,7 +80,7 @@ export class UserController {
       let usuarioCreado = await this.userRepository.create(user);
       if (usuarioCreado) {
         let datos = new Notificacion();
-        datos.destinatario = user.email;//el destinatario es el rol al que se le tiene que avisar
+        datos.destinatario = user.email; //el destinatario es el rol al que se le tiene que avisar
         datos.asunto = Keys.asuntoUsuarioCreado;
         datos.mensaje = `${Keys.saludo} ${user.nombre} <br>${Keys.mensajeUsuarioCreado} <br> ${clave}`;
         this.servicioNotificaciones.EnviarCorreo(datos);
@@ -82,7 +88,55 @@ export class UserController {
       }
     }
     return usuarioRepetido;
-    
+  }
+
+  @post('/crear-evaluador') //Pendiente hacer este pequeño ajuste en la notificacion
+  @response(200, {
+    description: 'User model instance',
+    content: {'application/json': {schema: getModelSchemaRef(User)}},
+  })
+  async crearEvaluador(
+    @requestBody({
+      content: {
+        'application/json': {
+          schema: getModelSchemaRef(User, {
+            title: 'NewUser',
+            exclude: ['_id'],
+          }),
+        },
+      },
+    })
+    user: Omit<User, '_id'>,
+  ): Promise<User | null> {
+    let clave = this.servicioClaves.CrearClaveAleatoria();
+    console.log(clave);
+    let claveCifrada = this.servicioClaves.CifrarTexto(clave);
+    user.clave = claveCifrada;
+    let usuarioEvaluadorRepetido = await this.userRepository.findOne({
+      where: {
+        email: user.email,
+        documento: user.documento,
+      },
+    });
+    if (!usuarioEvaluadorRepetido) {
+      let usuarioEvaluadorCreado = await this.userRepository.create(user);
+      if (usuarioEvaluadorCreado) {
+        let datos = new Notificacion();
+        datos.destinatario = user.email; //el destinatario es el rol al que se le tiene que avisar
+        datos.asunto = Keys.asuntoUsuarioCreado;
+        datos.mensaje = `${Keys.saludo} ${user.nombre} ${Keys.mensajeUsuarioCreado} ${clave}
+        ${Keys.mensajeEvaluacion2}`;
+        this.servicioNotificaciones.EnviarCorreo(datos);
+        return usuarioEvaluadorCreado;
+      }
+    }
+    let datos = new Notificacion();
+    datos.destinatario = user.email; //el destinatario es el rol al que se le tiene que avisar
+    datos.asunto = Keys.asuntoEvaluacion;
+    datos.mensaje = `${Keys.saludo} ${user.nombre} ${Keys.mensajeEvaluacion} ${clave}
+        ${Keys.mensajeEvaluacion2}`;
+    this.servicioNotificaciones.EnviarCorreo(datos);
+    return usuarioEvaluadorRepetido;
   }
 
   @get('/users/count')
@@ -185,34 +239,46 @@ export class UserController {
   /**
    * ---------- Métodos Adicionales ------------
    */
-  @post('/identificar-usuario')
-  @response(200, {
-    description: 'Identificación de usuarios',
-    content: {'application/json': {schema: getModelSchemaRef(Credentials)}},
-  })
-  async identificarUsuario(
-    @requestBody({
-      content: {
-        'application/json': {
-          schema: getModelSchemaRef(Credentials, {
-            title: 'Identificar Usuario',
-          }),
-        },
-      },
-    })
-    credentials: Credentials,
-  ): Promise<object | null> {
-    let usuario = await this.userSessionService.identificarUsuario(credentials);
-    let tk = "";
-    if (usuario) {
-      usuario.clave = "";
-      tk = await this.userSessionService.GenerarToken(usuario);
-    }
-    return {
-      token: tk,
-      usuario: usuario
-    };
-  }
+   @post('/identificar-usuario')
+   @response(200, {
+     description: 'Identificación de usuarios',
+     content: {'application/json': {schema: getModelSchemaRef(Credentials)}},
+   })
+   async identificarUsuario(
+     @requestBody({
+       content: {
+         'application/json': {
+           schema: getModelSchemaRef(Credentials, {
+             title: 'Identificar Usuario'
+           }),
+         },
+       },
+     })
+     credenciales: Credentials,
+   ): Promise<object | null> {
+     let usuario = await this.sesionUsuariosService.IdentificarUsuario(credenciales);
+     let tk = "";
+     if (usuario) {
+       let rol = await this.userRolRepository.findOne({
+         where: {
+           id_rol: credenciales.rol,
+           id_user: usuario._id
+         }
+       })
+       if (rol) {
+         tk = await this.sesionUsuariosService.GenerarToken(usuario, credenciales.rol)
+         console.log("El usuario tiene ese rol");
+ 
+       } else {
+         console.log("El usuario no tiene ese rol");
+ 
+       }
+     }
+     return {
+       token: tk,
+       usuario: usuario
+     }
+   }
 
   @post('/cambiar-clave', {
     responses: {
