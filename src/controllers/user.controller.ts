@@ -5,7 +5,7 @@ import {
   Filter,
   FilterExcludingWhere,
   repository,
-  Where,
+  Where
 } from '@loopback/repository';
 import {
   del,
@@ -16,7 +16,7 @@ import {
   post,
   put,
   requestBody,
-  response,
+  response
 } from '@loopback/rest';
 import {Keys} from '../llaves/config';
 import {
@@ -25,13 +25,13 @@ import {
   Credentials,
   Notificacion,
   NotificacionSms,
-  User,
+  User
 } from '../models';
-import {UserRepository, UserRolRepository} from '../repositories/';
+import {RolRepository, UserRepository, UserRolRepository} from '../repositories/';
 import {
   KeyManagerService,
   NotificacionesService,
-  SesionUsuariosService,
+  SesionUsuariosService
 } from '../services';
 
 export class UserController {
@@ -46,7 +46,9 @@ export class UserController {
     private sesionUsuariosService: SesionUsuariosService,
     @service(UserRolRepository)
     private userRolRepository: UserRolRepository,
-  ) {}
+    @service(RolRepository)
+    private rolRepository: RolRepository,
+  ) { }
 
   @post('/crear-usuario')
   @response(200, {
@@ -239,46 +241,54 @@ export class UserController {
   /**
    * ---------- Métodos Adicionales ------------
    */
-   @post('/identificar-usuario')
-   @response(200, {
-     description: 'Identificación de usuarios',
-     content: {'application/json': {schema: getModelSchemaRef(Credentials)}},
-   })
-   async identificarUsuario(
-     @requestBody({
-       content: {
-         'application/json': {
-           schema: getModelSchemaRef(Credentials, {
-             title: 'Identificar Usuario'
-           }),
-         },
-       },
-     })
-     credenciales: Credentials,
-   ): Promise<object | null> {
-     let usuario = await this.sesionUsuariosService.IdentificarUsuario(credenciales);
-     let tk = "";
-     if (usuario) {
-       let rol = await this.userRolRepository.findOne({
-         where: {
-           id_rol: credenciales.rol,
-           id_user: usuario._id
-         }
-       })
-       if (rol) {
-         tk = await this.sesionUsuariosService.GenerarToken(usuario, credenciales.rol)
-         console.log("El usuario tiene ese rol");
- 
-       } else {
-         console.log("El usuario no tiene ese rol");
- 
-       }
-     }
-     return {
-       token: tk,
-       usuario: usuario
-     }
-   }
+  @post('/identificar-usuario')
+  @response(200, {
+    description: 'Identificación de usuarios',
+    content: {'application/json': {schema: getModelSchemaRef(Credentials)}},
+  })
+  async identificarUsuario(
+    @requestBody({
+      content: {
+        'application/json': {
+          schema: getModelSchemaRef(Credentials, {
+            title: 'Identificar Usuario'
+          }),
+        },
+      },
+    })
+    credenciales: Credentials,
+  ): Promise<object | null> {
+    let usuario = await this.sesionUsuariosService.IdentificarUsuario(credenciales);
+    let tk = "";
+    let userRol;
+    let rol;
+    if (usuario) {
+      userRol = await this.userRolRepository.findOne({
+        where: {
+          id_rol: credenciales.rol,
+          id_user: usuario._id
+        }
+      })
+      rol = await this.rolRepository.findOne({
+        where: {
+          _id: credenciales.rol
+        }
+      })
+      if (userRol) {
+        tk = await this.sesionUsuariosService.GenerarToken(usuario, credenciales.rol)
+        console.log("El usuario tiene ese rol" + tk + usuario + rol);
+
+      } else {
+        console.log("El usuario no tiene ese rol");
+
+      }
+    }
+    return {
+      token: tk,
+      usuario: usuario,
+      rol: rol
+    }
+  }
 
   @post('/cambiar-clave', {
     responses: {
@@ -289,10 +299,11 @@ export class UserController {
   })
   async cambiarClave(@requestBody() datos: CambioClave): Promise<Boolean> {
     let usuario = await this.userRepository.findById(datos.id_user);
-
+    
     if (usuario) {
       if (usuario.clave == datos.clave_actual) {
-        usuario.clave = datos.nueva_clave;
+        let claveCifrada = this.servicioClaves.CifrarTexto(datos.nueva_clave);
+        usuario.clave = claveCifrada;
         console.log(datos.nueva_clave);
         await this.userRepository.updateById(datos.id_user, usuario);
         let notificacionSms = new NotificacionSms();

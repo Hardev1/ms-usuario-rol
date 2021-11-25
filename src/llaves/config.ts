@@ -17,7 +17,7 @@ export namespace Keys {
   export const asuntoArg = 'asunto';
   export const mensajeArg = 'mensaje';
   export const hashArg = 'hash';
-  export const urlToken = "http://localhost:5001/crear-token"
+  export const urlToken = "http://localhost:5000/crear-token"
   export const arg_nombre = "nombre";
   export const arg_id_persona = "id";
   export const arg_id_rol = "id_rol";
