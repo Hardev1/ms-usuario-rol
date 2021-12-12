@@ -6,3 +6,4 @@ export * from './cambio-clave.model';
 export * from './notificacion.model';
 export * from './notificacion-sms.model';
 export * from './credenciales-recuperar-clave.model';
+export * from './token-validator.model';

@@ -290,11 +290,8 @@ export class UserController {
       })
       if (userRol) {
         tk = await this.sesionUsuariosService.GenerarToken(usuario, credenciales.rol)
-        console.log("El usuario tiene ese rol" + tk + usuario + rol);
-
       } else {
         console.log("El usuario no tiene ese rol");
-
       }
     }
     return {
@@ -311,7 +308,8 @@ export class UserController {
       },
     },
   })
-  async cambiarClave(@requestBody() datos: CambioClave): Promise<Boolean> {
+  async cambiarClave(
+    @requestBody() datos: CambioClave): Promise<Boolean> {
     let usuario = await this.userRepository.findById(datos.id_user);
 
     if (usuario) {

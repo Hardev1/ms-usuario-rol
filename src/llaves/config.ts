@@ -23,4 +23,6 @@ export namespace Keys {
   export const arg_id_rol = "id_rol";
   export const asignar_rol_ev = "http://localhost:3001/rol-user";
   export const key_encript_decrypt = "2e35f242a46d67eeb74aabc37d5e5d05";
+  export const arg_token = "token";
+  export const url_validar_token = "http://localhost:5000/verificar-token"
 }
