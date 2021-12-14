@@ -1,24 +1,25 @@
-import {service} from '@loopback/core';
+import { service } from '@loopback/core';
 import {
   Count,
   CountSchema,
   Filter,
   FilterExcludingWhere,
   repository,
-  Where,
+  Where
 } from '@loopback/repository';
 import {
   del,
   get,
   getModelSchemaRef,
+  HttpErrors,
   param,
   patch,
   post,
   put,
   requestBody,
-  response,
+  response
 } from '@loopback/rest';
-import {Keys} from '../llaves/config';
+import { Keys } from '../llaves/config';
 import {
   CambioClave,
   CredencialesRecuperarClave,
@@ -26,9 +27,15 @@ import {
   Notificacion,
   NotificacionSms,
   User,
+  UserRol
 } from '../models';
-import {UserRepository} from '../repositories/user.repository';
-import {KeyManagerService, NotificacionesService, UserSessionService} from '../services';
+import { RolRepository, UserRepository, UserRolRepository } from '../repositories/';
+import {
+  KeyManagerService,
+  NotificacionesService,
+  SesionUsuariosService,
+  AsignarRolService
+} from '../services';
 
 export class UserController {
   constructor(
@@ -38,14 +45,20 @@ export class UserController {
     public servicioClaves: KeyManagerService,
     @service(NotificacionesService)
     public servicioNotificaciones: NotificacionesService,
-    @service(UserSessionService)
-    private userSessionService: UserSessionService
-  ) {}
+    @service(SesionUsuariosService)
+    private sesionUsuariosService: SesionUsuariosService,
+    @service(UserRolRepository)
+    private userRolRepository: UserRolRepository,
+    @service(RolRepository)
+    private rolRepository: RolRepository,
+    @service(AsignarRolService)
+    private asignarRolService: AsignarRolService,
+  ) { }
 
   @post('/crear-usuario')
   @response(200, {
     description: 'User model instance',
-    content: {'application/json': {schema: getModelSchemaRef(User)}},
+    content: { 'application/json': { schema: getModelSchemaRef(User) } },
   })
   async create(
     @requestBody({
@@ -74,7 +87,7 @@ export class UserController {
       let usuarioCreado = await this.userRepository.create(user);
       if (usuarioCreado) {
         let datos = new Notificacion();
-        datos.destinatario = user.email;//el destinatario es el rol al que se le tiene que avisar
+        datos.destinatario = user.email; //el destinatario es el rol al que se le tiene que avisar
         datos.asunto = Keys.asuntoUsuarioCreado;
         datos.mensaje = `${Keys.saludo} ${user.nombre} <br>${Keys.mensajeUsuarioCreado} <br> ${clave}`;
         this.servicioNotificaciones.EnviarCorreo(datos);
@@ -82,13 +95,71 @@ export class UserController {
       }
     }
     return usuarioRepetido;
-    
+  }
+
+  @post('/crear-evaluador') //Pendiente hacer este pequeño ajuste en la notificacion
+  @response(200, {
+    description: 'User model instance',
+    content: { 'application/json': { schema: getModelSchemaRef(User) } },
+  })
+  async crearEvaluador(
+    @requestBody({
+      content: {
+        'application/json': {
+          schema: getModelSchemaRef(User, {
+            title: 'NewUser',
+            exclude: ['_id'],
+          }),
+        },
+      },
+    })
+    user: Omit<User, '_id'>,
+  ): Promise<User | null> {
+    let clave;
+    let usuarioEvaluadorRepetido = await this.userRepository.findOne({
+      where: {
+        email: user.email,
+        documento: user.documento,
+      },
+    });
+    if (!usuarioEvaluadorRepetido) {
+      clave = this.servicioClaves.CrearClaveAleatoria();
+      let claveCifrada = this.servicioClaves.CifrarTexto(clave);
+      user.clave = claveCifrada;
+      let usuarioEvaluadorCreado = await this.userRepository.create(user);
+      let rolEv = await this.rolRepository.findOne({
+        where: {
+          nombre: "Evaluador"
+        },
+      });
+      let usuarioRol = new UserRol();
+      usuarioRol.id_rol = rolEv?._id
+      usuarioRol.id_user = usuarioEvaluadorCreado._id
+      this.asignarRolService.CrearUsuarioEv(usuarioRol);
+      if (usuarioEvaluadorCreado) {
+        let datos = new Notificacion();
+        datos.destinatario = user.email; //el destinatario es el rol al que se le tiene que avisar
+        datos.asunto = Keys.asuntoUsuarioCreado;
+        datos.mensaje = `${Keys.saludo} ${user.nombre} ${Keys.mensajeUsuarioCreado} ${clave}
+        ${Keys.mensajeEvaluacion2}`;
+        this.servicioNotificaciones.EnviarCorreo(datos);
+        return usuarioEvaluadorCreado;
+      }
+    }
+    let claveDescifrada = this.servicioClaves.DescifrarTexto(usuarioEvaluadorRepetido?.clave);
+    let datos = new Notificacion();
+    datos.destinatario = user.email; //el destinatario es el rol al que se le tiene que avisar
+    datos.asunto = Keys.asuntoEvaluacion;
+    datos.mensaje = `${Keys.saludo} ${user.nombre} ${Keys.mensajeEvaluacion} ${claveDescifrada}
+        ${Keys.mensajeEvaluacion2}`;
+    this.servicioNotificaciones.EnviarCorreo(datos);
+    return usuarioEvaluadorRepetido;
   }
 
   @get('/users/count')
   @response(200, {
     description: 'User model count',
-    content: {'application/json': {schema: CountSchema}},
+    content: { 'application/json': { schema: CountSchema } },
   })
   async count(@param.where(User) where?: Where<User>): Promise<Count> {
     return this.userRepository.count(where);
@@ -101,7 +172,7 @@ export class UserController {
       'application/json': {
         schema: {
           type: 'array',
-          items: getModelSchemaRef(User, {includeRelations: true}),
+          items: getModelSchemaRef(User, { includeRelations: true }),
         },
       },
     },
@@ -113,13 +184,13 @@ export class UserController {
   @patch('/users')
   @response(200, {
     description: 'User PATCH success count',
-    content: {'application/json': {schema: CountSchema}},
+    content: { 'application/json': { schema: CountSchema } },
   })
   async updateAll(
     @requestBody({
       content: {
         'application/json': {
-          schema: getModelSchemaRef(User, {partial: true}),
+          schema: getModelSchemaRef(User, { partial: true }),
         },
       },
     })
@@ -134,13 +205,13 @@ export class UserController {
     description: 'User model instance',
     content: {
       'application/json': {
-        schema: getModelSchemaRef(User, {includeRelations: true}),
+        schema: getModelSchemaRef(User, { includeRelations: true }),
       },
     },
   })
   async findById(
     @param.path.string('id') id: string,
-    @param.filter(User, {exclude: 'where'}) filter?: FilterExcludingWhere<User>,
+    @param.filter(User, { exclude: 'where' }) filter?: FilterExcludingWhere<User>,
   ): Promise<User> {
     return this.userRepository.findById(id, filter);
   }
@@ -154,7 +225,7 @@ export class UserController {
     @requestBody({
       content: {
         'application/json': {
-          schema: getModelSchemaRef(User, {partial: true}),
+          schema: getModelSchemaRef(User, { partial: true }),
         },
       },
     })
@@ -188,30 +259,47 @@ export class UserController {
   @post('/identificar-usuario')
   @response(200, {
     description: 'Identificación de usuarios',
-    content: {'application/json': {schema: getModelSchemaRef(Credentials)}},
+    content: { 'application/json': { schema: getModelSchemaRef(Credentials) } },
   })
   async identificarUsuario(
     @requestBody({
       content: {
         'application/json': {
           schema: getModelSchemaRef(Credentials, {
-            title: 'Identificar Usuario',
+            title: 'Identificar Usuario'
           }),
         },
       },
     })
-    credentials: Credentials,
+    credenciales: Credentials,
   ): Promise<object | null> {
-    let usuario = await this.userSessionService.identificarUsuario(credentials);
+    let usuario = await this.sesionUsuariosService.IdentificarUsuario(credenciales);
     let tk = "";
+    let userRol;
+    let rol;
     if (usuario) {
-      usuario.clave = "";
-      tk = await this.userSessionService.GenerarToken(usuario);
+      userRol = await this.userRolRepository.findOne({
+        where: {
+          id_rol: credenciales.rol,
+          id_user: usuario._id
+        }
+      })
+      rol = await this.rolRepository.findOne({
+        where: {
+          _id: credenciales.rol
+        }
+      })
+      if (userRol) {
+        tk = await this.sesionUsuariosService.GenerarToken(usuario, credenciales.rol)
+      } else {
+        throw new HttpErrors[401]("El usuario no tiene este rol")
+      }
     }
     return {
       token: tk,
-      usuario: usuario
-    };
+      usuario: usuario,
+      rol: rol
+    }
   }
 
   @post('/cambiar-clave', {
@@ -221,12 +309,14 @@ export class UserController {
       },
     },
   })
-  async cambiarClave(@requestBody() datos: CambioClave): Promise<Boolean> {
+  async cambiarClave(
+    @requestBody() datos: CambioClave): Promise<Boolean> {
     let usuario = await this.userRepository.findById(datos.id_user);
 
     if (usuario) {
       if (usuario.clave == datos.clave_actual) {
-        usuario.clave = datos.nueva_clave;
+        let claveCifrada = this.servicioClaves.CifrarTexto(datos.nueva_clave);
+        usuario.clave = claveCifrada;
         console.log(datos.nueva_clave);
         await this.userRepository.updateById(datos.id_user, usuario);
         let notificacionSms = new NotificacionSms();

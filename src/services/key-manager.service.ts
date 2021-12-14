@@ -1,11 +1,12 @@
-import { /* inject, */ BindingScope, injectable} from '@loopback/core';
-import {repository} from '@loopback/repository';
-import {CambioClave, User} from '../models';
-import {UserRepository} from '../repositories/user.repository';
+import { /* inject, */ BindingScope, injectable } from '@loopback/core';
+import { repository } from '@loopback/repository';
+import { Keys } from '../llaves/config';
+import { CambioClave, User } from '../models';
+import { UserRepository } from '../repositories/user.repository';
 var generator = require('generate-password');
 var CryptoJS = require("crypto-js");
 
-@injectable({scope: BindingScope.TRANSIENT})
+@injectable({ scope: BindingScope.TRANSIENT })
 export class KeyManagerService {
   constructor(@repository(UserRepository)
   public usuarioRepository: UserRepository
@@ -58,7 +59,12 @@ export class KeyManagerService {
   }
 
   CifrarTexto(texto: string) {
-    let textoCifrado = CryptoJS.MD5(texto).toString();
-    return textoCifrado;
+    let data = CryptoJS.AES.encrypt(texto, Keys.key_encript_decrypt);
+    return data;
+  }
+
+  DescifrarTexto(texto: string | undefined) {
+    let decrypted;
+    return decrypted = CryptoJS.AES.decrypt(texto, Keys.key_encript_decrypt).toString(CryptoJS.enc.Utf8);
   }
 }
