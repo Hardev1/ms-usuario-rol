@@ -11,6 +11,7 @@ import {
   del,
   get,
   getModelSchemaRef,
+  HttpErrors,
   param,
   patch,
   post,
@@ -291,7 +292,7 @@ export class UserController {
       if (userRol) {
         tk = await this.sesionUsuariosService.GenerarToken(usuario, credenciales.rol)
       } else {
-        console.log("El usuario no tiene ese rol");
+        throw new HttpErrors[401]("El usuario no tiene este rol")
       }
     }
     return {
