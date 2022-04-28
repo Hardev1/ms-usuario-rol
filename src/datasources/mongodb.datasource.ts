@@ -1,10 +1,12 @@
 import {inject, lifeCycleObserver, LifeCycleObserver} from '@loopback/core';
 import {juggler} from '@loopback/repository';
 
+//url: 'mongodb+srv://admin-usuarios-rol:z5s5al6GdV0qywLJ@cluster0.3kvbr.mongodb.net/usuario_db?retryWrites=true&w=majority',
+
 const config = {
   name: 'mongodb',
   connector: 'mongodb',
-  url: 'mongodb+srv://admin-usuarios-rol:z5s5al6GdV0qywLJ@cluster0.3kvbr.mongodb.net/usuario_db?retryWrites=true&w=majority',
+  url: 'mongodb://admin-usuarios-rol:z5s5al6GdV0qywLJ@cluster0-shard-00-00.3kvbr.mongodb.net:27017,cluster0-shard-00-01.3kvbr.mongodb.net:27017,cluster0-shard-00-02.3kvbr.mongodb.net:27017/usuario_db?ssl=true&replicaSet=atlas-fhr1n0-shard-0&authSource=admin&retryWrites=true&w=majority',
   host: 'localhost',
   port: 27017,
   user: 'admin-usuarios-rol',

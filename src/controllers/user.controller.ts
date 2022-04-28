@@ -11,6 +11,7 @@ import {
   del,
   get,
   getModelSchemaRef,
+  HttpErrors,
   param,
   patch,
   post,
@@ -291,7 +292,7 @@ export class UserController {
       if (userRol) {
         tk = await this.sesionUsuariosService.GenerarToken(usuario, credenciales.rol)
       } else {
-        console.log("El usuario no tiene ese rol");
+        throw new HttpErrors[401]("El usuario no tiene este rol")
       }
     }
     return {
@@ -311,13 +312,11 @@ export class UserController {
   async cambiarClave(
     @requestBody() datos: CambioClave): Promise<Boolean> {
     let usuario = await this.userRepository.findById(datos.id_user);
-
     if (usuario) {
       if (usuario.clave == datos.clave_actual) {
         let claveCifrada = this.servicioClaves.CifrarTexto(datos.nueva_clave);
         usuario.clave = claveCifrada;
-        console.log(datos.nueva_clave);
-        await this.userRepository.updateById(datos.id_user, usuario);
+        await this.userRepository.updateById(usuario._id, usuario);
         let notificacionSms = new NotificacionSms();
         notificacionSms.destinatario = usuario.telefono;
         notificacionSms.mensaje = `${Keys.saludo} ${usuario.nombre} ${Keys.mensajeCambioClave}`;
@@ -340,18 +339,21 @@ export class UserController {
   async recuperarClave(
     @requestBody() credencialRecuperar: CredencialesRecuperarClave,
   ): Promise<Boolean> {
+    console.log("correo entrante"+ credencialRecuperar.email)
     let usuario = await this.userRepository.findOne({
       where: {
         email: credencialRecuperar.email,
       },
     });
+    console.log("CLAVE USUARIO actual:::"+usuario?.clave)
     if (usuario) {
       let clave = this.servicioClaves.CrearClaveAleatoria();
-      console.log(clave);
+      console.log("clave aleatorioa: "+clave+"\n\n");
       let claveCifrada = this.servicioClaves.CifrarTexto(clave);
-      console.log(claveCifrada);
+      console.log("CLAVE CIFRADA:"+claveCifrada+"--------------");
       usuario.clave = claveCifrada;
       await this.userRepository.updateById(usuario._id, usuario);
+      console.log("user NUEVA CONTRA"+usuario.clave)
       let notificacionSms = new NotificacionSms();
       notificacionSms.destinatario = usuario.telefono;
       notificacionSms.mensaje = `${Keys.saludo} ${usuario.nombre}, ${Keys.mensajeRecuperarClave} ${clave}`;

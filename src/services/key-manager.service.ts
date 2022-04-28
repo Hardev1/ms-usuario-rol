@@ -58,13 +58,13 @@ export class KeyManagerService {
     return password
   }
 
-  CifrarTexto(texto: string) {
-    let data = CryptoJS.AES.encrypt(texto, Keys.key_encript_decrypt);
+  CifrarTexto(texto: string): string {
+    let data:string = CryptoJS.AES.encrypt(texto, Keys.key_encript_decrypt).toString();
     return data;
   }
 
   DescifrarTexto(texto: string | undefined) {
-    let decrypted;
+    let decrypted:string;
     return decrypted = CryptoJS.AES.decrypt(texto, Keys.key_encript_decrypt).toString(CryptoJS.enc.Utf8);
   }
 }
