@@ -1,4 +1,4 @@
-import { service } from '@loopback/core';
+import {service} from '@loopback/core';
 import {
   Count,
   CountSchema,
@@ -19,7 +19,7 @@ import {
   requestBody,
   response
 } from '@loopback/rest';
-import { Keys } from '../llaves/config';
+import {Keys} from '../llaves/config';
 import {
   CambioClave,
   CredencialesRecuperarClave,
@@ -29,12 +29,11 @@ import {
   User,
   UserRol
 } from '../models';
-import { RolRepository, UserRepository, UserRolRepository } from '../repositories/';
+import {RolRepository, UserRepository, UserRolRepository} from '../repositories/';
 import {
-  KeyManagerService,
+  AsignarRolService, KeyManagerService,
   NotificacionesService,
-  SesionUsuariosService,
-  AsignarRolService
+  SesionUsuariosService
 } from '../services';
 
 export class UserController {
@@ -58,7 +57,7 @@ export class UserController {
   @post('/crear-usuario')
   @response(200, {
     description: 'User model instance',
-    content: { 'application/json': { schema: getModelSchemaRef(User) } },
+    content: {'application/json': {schema: getModelSchemaRef(User)}},
   })
   async create(
     @requestBody({
@@ -100,7 +99,7 @@ export class UserController {
   @post('/crear-evaluador') //Pendiente hacer este pequeño ajuste en la notificacion
   @response(200, {
     description: 'User model instance',
-    content: { 'application/json': { schema: getModelSchemaRef(User) } },
+    content: {'application/json': {schema: getModelSchemaRef(User)}},
   })
   async crearEvaluador(
     @requestBody({
@@ -159,7 +158,7 @@ export class UserController {
   @get('/users/count')
   @response(200, {
     description: 'User model count',
-    content: { 'application/json': { schema: CountSchema } },
+    content: {'application/json': {schema: CountSchema}},
   })
   async count(@param.where(User) where?: Where<User>): Promise<Count> {
     return this.userRepository.count(where);
@@ -172,7 +171,7 @@ export class UserController {
       'application/json': {
         schema: {
           type: 'array',
-          items: getModelSchemaRef(User, { includeRelations: true }),
+          items: getModelSchemaRef(User, {includeRelations: true}),
         },
       },
     },
@@ -184,13 +183,13 @@ export class UserController {
   @patch('/users')
   @response(200, {
     description: 'User PATCH success count',
-    content: { 'application/json': { schema: CountSchema } },
+    content: {'application/json': {schema: CountSchema}},
   })
   async updateAll(
     @requestBody({
       content: {
         'application/json': {
-          schema: getModelSchemaRef(User, { partial: true }),
+          schema: getModelSchemaRef(User, {partial: true}),
         },
       },
     })
@@ -205,13 +204,13 @@ export class UserController {
     description: 'User model instance',
     content: {
       'application/json': {
-        schema: getModelSchemaRef(User, { includeRelations: true }),
+        schema: getModelSchemaRef(User, {includeRelations: true}),
       },
     },
   })
   async findById(
     @param.path.string('id') id: string,
-    @param.filter(User, { exclude: 'where' }) filter?: FilterExcludingWhere<User>,
+    @param.filter(User, {exclude: 'where'}) filter?: FilterExcludingWhere<User>,
   ): Promise<User> {
     return this.userRepository.findById(id, filter);
   }
@@ -225,7 +224,7 @@ export class UserController {
     @requestBody({
       content: {
         'application/json': {
-          schema: getModelSchemaRef(User, { partial: true }),
+          schema: getModelSchemaRef(User, {partial: true}),
         },
       },
     })
@@ -259,7 +258,7 @@ export class UserController {
   @post('/identificar-usuario')
   @response(200, {
     description: 'Identificación de usuarios',
-    content: { 'application/json': { schema: getModelSchemaRef(Credentials) } },
+    content: {'application/json': {schema: getModelSchemaRef(Credentials)}},
   })
   async identificarUsuario(
     @requestBody({
@@ -297,7 +296,6 @@ export class UserController {
     }
     return {
       token: tk,
-      usuario: usuario,
       rol: rol
     }
   }
@@ -339,21 +337,21 @@ export class UserController {
   async recuperarClave(
     @requestBody() credencialRecuperar: CredencialesRecuperarClave,
   ): Promise<Boolean> {
-    console.log("correo entrante"+ credencialRecuperar.email)
+    console.log("correo entrante" + credencialRecuperar.email)
     let usuario = await this.userRepository.findOne({
       where: {
         email: credencialRecuperar.email,
       },
     });
-    console.log("CLAVE USUARIO actual:::"+usuario?.clave)
+    console.log("CLAVE USUARIO actual:::" + usuario?.clave)
     if (usuario) {
       let clave = this.servicioClaves.CrearClaveAleatoria();
-      console.log("clave aleatorioa: "+clave+"\n\n");
+      console.log("clave aleatorioa: " + clave + "\n\n");
       let claveCifrada = this.servicioClaves.CifrarTexto(clave);
-      console.log("CLAVE CIFRADA:"+claveCifrada+"--------------");
+      console.log("CLAVE CIFRADA:" + claveCifrada + "--------------");
       usuario.clave = claveCifrada;
       await this.userRepository.updateById(usuario._id, usuario);
-      console.log("user NUEVA CONTRA"+usuario.clave)
+      console.log("user NUEVA CONTRA" + usuario.clave)
       let notificacionSms = new NotificacionSms();
       notificacionSms.destinatario = usuario.telefono;
       notificacionSms.mensaje = `${Keys.saludo} ${usuario.nombre}, ${Keys.mensajeRecuperarClave} ${clave}`;
