@@ -277,6 +277,7 @@ export class UserController {
     let userRol;
     let rol;
     if (usuario) {
+      usuario.clave = "";
       userRol = await this.userRolRepository.findOne({
         where: {
           id_rol: credenciales.rol,
@@ -296,6 +297,7 @@ export class UserController {
     }
     return {
       token: tk,
+      usuario: usuario,
       rol: rol
     }
   }
